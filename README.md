@@ -8,37 +8,33 @@ MCP server for **campaign-explore** looks and dashboards on bigbrain.me. Not Loo
 
 | Requirement | Notes |
 |-------------|--------|
-| **Cursor** or **Claude Desktop** (Mac app) | Not monday browser/workspace Claude |
+| **Cursor**, **Claude Code** (terminal), or **Claude Desktop** | Not monday browser/workspace Claude |
 | **Python 3.10+** | macOS Xcode `python3` is often 3.9 → `brew install python` |
 | **git** | For clone-based install |
 | **`git config user.name`** | Becomes your campaign-explore personal folder name |
 
 ## Install (new users)
 
-**Copy/paste exactly in Terminal:**
+**Copy/paste exactly in Terminal** (include `--dir .`):
 
 ```bash
 git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 ```
 
-**Claude Code (terminal):**
+Installer **auto-detects** your app (`--clients auto`): uses `claude-code` when only the `claude` CLI is installed, `cursor` when only Cursor is.
+
+**Claude Code (terminal)** — uses `claude mcp add -s user` automatically:
 
 ```bash
 ./install-z2h-explore-mcp.sh --dir . --clients claude-code
 ```
 
-Then exit and restart your `claude` session. Run `/mcp` to confirm `z2h-explore` is listed.
+Restart `claude`, run `/mcp`, confirm `z2h-explore` is connected.
 
-**Claude Desktop (Mac app):**
-
-```bash
-./install-z2h-explore-mcp.sh --dir . --clients claude-desktop
-```
-
-**Both Claude products:**
+**Cursor:**
 
 ```bash
-./install-z2h-explore-mcp.sh --dir . --clients claude
+./install-z2h-explore-mcp.sh --dir . --clients cursor
 ```
 
 Then follow the **Next steps** printed at the end (restart app, test prompt).
