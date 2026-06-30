@@ -7,8 +7,11 @@
 # Already cloned:
 #   ./install-z2h-explore-mcp.sh --dir .
 #
-# Claude Desktop instead of Cursor:
-#   ./install-z2h-explore-mcp.sh --dir . --clients claude
+# Claude Code (terminal):
+#   ./install-z2h-explore-mcp.sh --dir . --clients claude-code
+#
+# Claude Desktop (app):
+#   ./install-z2h-explore-mcp.sh --dir . --clients claude-desktop
 #
 # Both clients:
 #   ./install-z2h-explore-mcp.sh --dir . --clients both

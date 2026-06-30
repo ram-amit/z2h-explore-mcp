@@ -11,7 +11,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from mcp_config import MCP_KEY, claude_desktop_config_path, load_json_config  # noqa: E402
+from mcp_config import MCP_KEY, claude_code_config_path, claude_desktop_config_path, load_json_config  # noqa: E402
 from install_mcp import MIN_PYTHON, find_python, python_is_supported, resolve_install_dir  # noqa: E402
 
 OK = "ok"
@@ -72,6 +72,12 @@ def main() -> int:
     else:
         results.append(check("cursor mcp", WARN, f"'{MCP_KEY}' not in {cursor_path}"))
 
+    claude_code_path = claude_code_config_path(home)
+    if has_mcp_entry(claude_code_path):
+        results.append(check("claude code mcp", OK, str(claude_code_path)))
+    else:
+        results.append(check("claude code mcp", WARN, f"'{MCP_KEY}' not in {claude_code_path}"))
+
     claude_path = claude_desktop_config_path(home)
     if claude_path:
         if has_mcp_entry(claude_path):
@@ -115,7 +121,7 @@ def main() -> int:
         return 1
 
     print("Install looks good.")
-    print("Restart Cursor (or Claude Desktop), then ask:")
+    print("Restart Cursor / Claude Code / Claude Desktop, then ask:")
     print('  list explores in campaign-explore')
     return 0
 

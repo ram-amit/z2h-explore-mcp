@@ -21,16 +21,24 @@ MCP server for **campaign-explore** looks and dashboards on bigbrain.me. Not Loo
 git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 ```
 
-**Claude Desktop instead of Cursor:**
+**Claude Code (terminal):**
+
+```bash
+./install-z2h-explore-mcp.sh --dir . --clients claude-code
+```
+
+Then exit and restart your `claude` session. Run `/mcp` to confirm `z2h-explore` is listed.
+
+**Claude Desktop (Mac app):**
+
+```bash
+./install-z2h-explore-mcp.sh --dir . --clients claude-desktop
+```
+
+**Both Claude products:**
 
 ```bash
 ./install-z2h-explore-mcp.sh --dir . --clients claude
-```
-
-**Both Cursor + Claude Desktop:**
-
-```bash
-./install-z2h-explore-mcp.sh --dir . --clients both
 ```
 
 Then follow the **Next steps** printed at the end (restart app, test prompt).
@@ -60,7 +68,8 @@ cd ~/z2h-explore-mcp && ./verify-install.sh
 | `invalid option nameipefail` | Don't use `curl \| bash`. Use **git clone** command above. |
 | `mcp` pip error / Python 3.9 | `brew install python` then `cd ~/z2h-explore-mcp && rm -rf venv && ./install-z2h-explore-mcp.sh --dir .` |
 | `git pull` blocked by local changes | `git reset --hard origin/main && git pull` (installer now auto-resets) |
-| MCP not in chat list | Wrong app: use **Cursor** or **Claude Desktop**, not monday browser Claude |
+| MCP not in chat list | Wrong app: use **Cursor**, **Claude Code** (`~/.claude.json`), or **Claude Desktop** — not monday browser Claude |
+| Claude Code: MCP missing | Run `--clients claude-code` (not `claude-desktop`). Restart `claude`, check `/mcp` |
 | Only see `looker-toolbox` | That's Looker. Ask for **campaign-explore** / **z2h-explore** |
 | Install finished but no MCP | Re-run without `--skip-mcp-json`: `./install-z2h-explore-mcp.sh --dir .` |
 | Writes fail | Connect VPN or set `BIGBRAIN_AUTH_TOKEN` in `.env` |
@@ -92,7 +101,7 @@ Restart Cursor / Claude Desktop after.
 | Flag | Purpose |
 |------|---------|
 | `--dir .` | Install path |
-| `--clients cursor\|claude\|both\|none` | Which app gets MCP config (default: `cursor`) |
+| `--clients cursor\|claude-code\|claude-desktop\|claude\|both\|all\|none` | Which app gets MCP config |
 | `--python /path/to/python3.12` | Force Python for venv |
 | `Z2H_EXPLORE_MCP_DIR` | Override install folder |
 

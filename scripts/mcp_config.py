@@ -1,4 +1,4 @@
-"""Merge z2h-explore into Cursor / Claude Desktop MCP config files."""
+"""Merge z2h-explore into Cursor / Claude Code / Claude Desktop MCP config files."""
 
 from __future__ import annotations
 
@@ -51,6 +51,10 @@ def merge_mcp_server_config(
     config["mcpServers"] = servers
     config_path.write_text(json.dumps(config, indent=2) + "\n")
     print(f"Updated {label} config: {config_path}")
+
+
+def claude_code_config_path(home: Path) -> Path:
+    return home / ".claude.json"
 
 
 def claude_desktop_config_path(home: Path) -> Path | None:

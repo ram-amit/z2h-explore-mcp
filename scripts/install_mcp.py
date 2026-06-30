@@ -26,7 +26,12 @@ from repo_config import (  # noqa: E402
     GITHUB_WEB_URL,
 )
 from user_context import UserContext, detect_user_context  # noqa: E402
-from mcp_config import MCP_KEY, claude_desktop_config_path, merge_mcp_server_config  # noqa: E402
+from mcp_config import (  # noqa: E402
+    MCP_KEY,
+    claude_code_config_path,
+    claude_desktop_config_path,
+    merge_mcp_server_config,
+)
 REQUIRED_FILES = ("server.py", "api.py", "requirements.txt")
 MIN_PYTHON = (3, 10)
 
@@ -251,6 +256,21 @@ def write_env_file(install_dir: Path, ctx: UserContext) -> Path:
     return env_path
 
 
+def expand_client_targets(clients: str) -> set[str]:
+    mapping = {
+        "none": set(),
+        "cursor": {"cursor"},
+        "claude-code": {"claude-code"},
+        "claude-desktop": {"claude-desktop"},
+        "claude": {"claude-code", "claude-desktop"},
+        "both": {"cursor", "claude-code", "claude-desktop"},
+        "all": {"cursor", "claude-code", "claude-desktop"},
+    }
+    if clients not in mapping:
+        raise SystemExit(f"Unknown --clients value: {clients}")
+    return mapping[clients]
+
+
 def configure_clients(
     clients: str,
     install_dir: Path,
@@ -258,14 +278,23 @@ def configure_clients(
     ctx: UserContext,
 ) -> list[str]:
     entry = ctx.mcp_json_entry(install_dir, python_bin)
+    targets = expand_client_targets(clients)
     updated: list[str] = []
 
-    if clients in {"cursor", "both"}:
+    if "cursor" in targets:
         merge_mcp_server_config(ctx.cursor_mcp_json, entry, label="Cursor")
         updated.append("Cursor")
 
-    claude_path = claude_desktop_config_path(ctx.home)
-    if clients in {"claude", "both"}:
+    if "claude-code" in targets:
+        merge_mcp_server_config(
+            claude_code_config_path(ctx.home),
+            entry,
+            label="Claude Code",
+        )
+        updated.append("Claude Code")
+
+    if "claude-desktop" in targets:
+        claude_path = claude_desktop_config_path(ctx.home)
         if claude_path is None:
             print("Claude Desktop config path not detected on this OS; skipping.")
         else:
@@ -293,11 +322,16 @@ def print_next_steps(clients: list[str], ctx: UserContext, install_dir: Path) ->
         step += 1
         print(f"  {step}. Cursor → Settings → MCP → confirm '{MCP_KEY}' is connected")
         step += 1
+    if "Claude Code" in clients:
+        print(f"  {step}. Restart Claude Code (exit terminal session, run `claude` again)")
+        step += 1
+        print(f"  {step}. In Claude Code, run `/mcp` and confirm '{MCP_KEY}' is listed")
+        step += 1
     if "Claude Desktop" in clients:
         print(f"  {step}. Quit Claude Desktop fully (Cmd+Q), reopen")
         step += 1
 
-    print(f"  {step}. In a NEW chat (Cursor or Claude Desktop app — not monday browser Claude), ask:")
+    print(f"  {step}. In a NEW chat (not monday browser Claude), ask:")
     print('       list explores in campaign-explore')
     print(f"  {step + 1}. Verify: {', '.join(['Campaign Monitoring', 'Advanced Analytics', 'LinkedIn Habu'])}")
     print("\nHealth check anytime:")
@@ -323,6 +357,10 @@ def _git_config(key: str) -> str | None:
         )
     except OSError:
         return None
+    value = result.stdout.strip()
+    return value or None
+
+
 def context_for_install(install_dir: Path) -> UserContext:
     base = detect_user_context()
     return UserContext(
@@ -372,9 +410,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--clients",
-        choices=["cursor", "claude", "both", "none"],
+        choices=["cursor", "claude-code", "claude-desktop", "claude", "both", "all", "none"],
         default="cursor",
-        help="Wire MCP into Cursor and/or Claude Desktop (default: cursor)",
+        help=(
+            "Wire MCP config: cursor (default), claude-code (terminal), "
+            "claude-desktop (app), claude (both Claude products), both/all (everything)"
+        ),
     )
     parser.add_argument(
         "--skip-mcp-json",
