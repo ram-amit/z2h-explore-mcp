@@ -65,11 +65,11 @@ cd ~/z2h-explore-mcp && ./verify-install.sh
 
 | Symptom | Fix |
 |---------|-----|
+| Script exits with no output | You ran `--dir` without a path. Use `--dir .` |
 | `invalid option nameipefail` | Don't use `curl \| bash`. Use **git clone** command above. |
-| `mcp` pip error / Python 3.9 | `brew install python` then `cd ~/z2h-explore-mcp && rm -rf venv && ./install-z2h-explore-mcp.sh --dir .` |
-| `git pull` blocked by local changes | `git reset --hard origin/main && git pull` (installer now auto-resets) |
-| MCP not in chat list | Wrong app: use **Cursor**, **Claude Code** (`~/.claude.json`), or **Claude Desktop** — not monday browser Claude |
-| Claude Code: MCP missing | Run `--clients claude-code` (not `claude-desktop`). Restart `claude`, check `/mcp` |
+| MCP not registered (Claude Code) | Re-run: `./install-z2h-explore-mcp.sh --dir . --clients claude-code` |
+| MCP not in chat list | Wrong app: use **Cursor**, **Claude Code** (`claude` in terminal), or **Claude Desktop** — not monday browser Claude |
+| Claude Code: MCP missing | Run `/mcp` after restarting `claude`. Check `claude mcp list` |
 | Only see `looker-toolbox` | That's Looker. Ask for **campaign-explore** / **z2h-explore** |
 | Install finished but no MCP | Re-run without `--skip-mcp-json`: `./install-z2h-explore-mcp.sh --dir .` |
 | Writes fail | Connect VPN or set `BIGBRAIN_AUTH_TOKEN` in `.env` |
@@ -101,7 +101,7 @@ Restart Cursor / Claude Desktop after.
 | Flag | Purpose |
 |------|---------|
 | `--dir .` | Install path |
-| `--clients cursor\|claude-code\|claude-desktop\|claude\|both\|all\|none` | Which app gets MCP config |
+| `--clients auto\|cursor\|claude-code\|...` | Which app gets MCP config (default: `auto`) |
 | `--python /path/to/python3.12` | Force Python for venv |
 | `Z2H_EXPLORE_MCP_DIR` | Override install folder |
 

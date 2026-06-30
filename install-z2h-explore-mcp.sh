@@ -4,17 +4,8 @@
 # Recommended (copy/paste exactly):
 #   git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 #
-# Already cloned:
-#   ./install-z2h-explore-mcp.sh --dir .
-#
-# Claude Code (terminal):
+# Claude Code (terminal) — auto-detected when `claude` is installed and Cursor is not:
 #   ./install-z2h-explore-mcp.sh --dir . --clients claude-code
-#
-# Claude Desktop (app):
-#   ./install-z2h-explore-mcp.sh --dir . --clients claude-desktop
-#
-# Both clients:
-#   ./install-z2h-explore-mcp.sh --dir . --clients both
 #
 set -euo pipefail
 
@@ -26,22 +17,33 @@ TARBALL_URL="${Z2H_EXPLORE_MCP_TARBALL_URL:-}"
 SKIP_MCP_JSON=""
 CLIENTS=""
 
+require_arg() {
+  local flag="$1"
+  local value="${2:-}"
+  if [[ -z "$value" || "$value" == --* ]]; then
+    echo "Error: ${flag} requires a value." >&2
+    echo "Example: ${flag} ." >&2
+    exit 1
+  fi
+  printf '%s' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir)
-      INSTALL_DIR="$2"
+      INSTALL_DIR="$(require_arg --dir "${2:-}")"
       shift 2
       ;;
     --repo-url)
-      REPO_URL="$2"
+      REPO_URL="$(require_arg --repo-url "${2:-}")"
       shift 2
       ;;
     --tarball-url)
-      TARBALL_URL="$2"
+      TARBALL_URL="$(require_arg --tarball-url "${2:-}")"
       shift 2
       ;;
     --clients)
-      CLIENTS="$2"
+      CLIENTS="$(require_arg --clients "${2:-}")"
       shift 2
       ;;
     --skip-mcp-json)
@@ -49,7 +51,12 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,16p' "$0"
+      sed -n '2,10p' "$0"
+      echo ""
+      echo "Examples:"
+      echo "  ./install-z2h-explore-mcp.sh --dir ."
+      echo "  ./install-z2h-explore-mcp.sh --dir . --clients claude-code"
+      echo "  ./install-z2h-explore-mcp.sh --dir . --clients auto"
       exit 0
       ;;
     *)
@@ -88,7 +95,6 @@ ARGS=()
 [[ -n "$SKIP_MCP_JSON" ]] && ARGS+=($SKIP_MCP_JSON)
 [[ -n "$CLIENTS" ]] && ARGS+=(--clients "$CLIENTS")
 
-# Prefer Homebrew / newer python for the installer bootstrap when available
 BOOTSTRAP_PYTHON=""
 for candidate in python3.13 python3.12 python3.11 python3.10 /opt/homebrew/bin/python3 /usr/local/bin/python3 python3; do
   if command -v "$candidate" >/dev/null 2>&1; then

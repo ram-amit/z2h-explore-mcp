@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -61,3 +63,62 @@ def claude_desktop_config_path(home: Path) -> Path | None:
     if home.name == "Users" or (home / "Library").exists():
         return home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
     return None
+
+
+def cursor_is_available(home: Path) -> bool:
+    return (home / ".cursor").exists() or shutil.which("cursor") is not None
+
+
+def claude_code_cli_available() -> bool:
+    return shutil.which("claude") is not None
+
+
+def detect_default_clients(home: Path) -> str:
+    env_override = os.getenv("Z2H_EXPLORE_CLIENTS")
+    if env_override:
+        return env_override
+
+    has_cursor = cursor_is_available(home)
+    has_claude = claude_code_cli_available()
+
+    if has_claude and not has_cursor:
+        return "claude-code"
+    if has_cursor and not has_claude:
+        return "cursor"
+    if has_claude and has_cursor:
+        return "cursor"
+    if has_claude:
+        return "claude-code"
+    return "cursor"
+
+
+def register_claude_code_cli(
+    install_dir: Path,
+    python_bin: Path,
+    env: dict[str, str],
+) -> bool:
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        return False
+
+    subprocess.run(
+        [claude_bin, "mcp", "remove", MCP_KEY, "-s", "user"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    cmd: list[str] = [claude_bin, "mcp", "add", MCP_KEY, "-s", "user"]
+    for key, value in env.items():
+        cmd.extend(["-e", f"{key}={value}"])
+    cmd.extend(["--", str(python_bin), str(install_dir / "server.py")])
+
+    print(f"$ {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "unknown error").strip()
+        print(f"WARN: `claude mcp add` failed: {detail}")
+        return False
+
+    print("Registered z2h-explore via Claude Code CLI (`claude mcp add -s user`)")
+    return True

@@ -28,9 +28,13 @@ from repo_config import (  # noqa: E402
 from user_context import UserContext, detect_user_context  # noqa: E402
 from mcp_config import (  # noqa: E402
     MCP_KEY,
+    claude_code_cli_available,
     claude_code_config_path,
     claude_desktop_config_path,
+    cursor_is_available,
+    detect_default_clients,
     merge_mcp_server_config,
+    register_claude_code_cli,
 )
 REQUIRED_FILES = ("server.py", "api.py", "requirements.txt")
 MIN_PYTHON = (3, 10)
@@ -256,7 +260,11 @@ def write_env_file(install_dir: Path, ctx: UserContext) -> Path:
     return env_path
 
 
-def expand_client_targets(clients: str) -> set[str]:
+def expand_client_targets(clients: str, home: Path) -> set[str]:
+    if clients == "auto":
+        clients = detect_default_clients(home)
+        print(f"Auto-detected --clients {clients}")
+
     mapping = {
         "none": set(),
         "cursor": {"cursor"},
@@ -278,20 +286,39 @@ def configure_clients(
     ctx: UserContext,
 ) -> list[str]:
     entry = ctx.mcp_json_entry(install_dir, python_bin)
-    targets = expand_client_targets(clients)
+    env = ctx.mcp_env_block()
+    targets = expand_client_targets(clients, ctx.home)
     updated: list[str] = []
 
     if "cursor" in targets:
+        if not cursor_is_available(ctx.home):
+            print(
+                "WARN: Cursor not detected (~/.cursor missing, `cursor` not in PATH).\n"
+                "      MCP config was written to ~/.cursor/mcp.json but Cursor may not read it.\n"
+                "      For Claude Code CLI, re-run with: --clients claude-code"
+            )
         merge_mcp_server_config(ctx.cursor_mcp_json, entry, label="Cursor")
         updated.append("Cursor")
 
     if "claude-code" in targets:
-        merge_mcp_server_config(
-            claude_code_config_path(ctx.home),
-            entry,
-            label="Claude Code",
-        )
-        updated.append("Claude Code")
+        if register_claude_code_cli(install_dir, python_bin, env):
+            updated.append("Claude Code")
+        else:
+            merge_mcp_server_config(
+                claude_code_config_path(ctx.home),
+                entry,
+                label="Claude Code (~/.claude.json fallback)",
+            )
+            updated.append("Claude Code")
+            if not claude_code_cli_available():
+                print(
+                    "NOTE: `claude` CLI not found. Wrote ~/.claude.json manually.\n"
+                    "      Or register yourself:\n"
+                    f"        claude mcp add {MCP_KEY} -s user "
+                    f"-e Z2H_EXPLORE_PERSONAL_FOLDER={ctx.campaign_explore_personal_folder} "
+                    f"-e Z2H_EXPLORE_DEFAULT_STORAGE=personal "
+                    f"-- {python_bin} {install_dir / 'server.py'}"
+                )
 
     if "claude-desktop" in targets:
         claude_path = claude_desktop_config_path(ctx.home)
@@ -410,11 +437,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--clients",
-        choices=["cursor", "claude-code", "claude-desktop", "claude", "both", "all", "none"],
-        default="cursor",
+        choices=["auto", "cursor", "claude-code", "claude-desktop", "claude", "both", "all", "none"],
+        default="auto",
         help=(
-            "Wire MCP config: cursor (default), claude-code (terminal), "
-            "claude-desktop (app), claude (both Claude products), both/all (everything)"
+            "Wire MCP config (default: auto). auto picks claude-code when only `claude` "
+            "is installed, cursor when only Cursor is installed"
         ),
     )
     parser.add_argument(
