@@ -10,38 +10,51 @@ Pick one. All paths clone from GitHub, create a venv, write `.env`, and merge `~
 
 ### Option A: one-liner (recommended for Slack)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
-```
-
-Default install path: `~/Development/z2h-explore-mcp` (or `~/z2h-explore-mcp` if `~/Development` does not exist).
-
-Custom path:
+Pick any install path:
 
 ```bash
-Z2H_EXPLORE_MCP_DIR=~/Desktop/z2h-explore-mcp \
+Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
 ```
+
+Without `Z2H_EXPLORE_MCP_DIR`, the installer uses `~/Development/z2h-explore-mcp` if `~/Development` exists, otherwise `~/z2h-explore-mcp`.
 
 No SSH key? Use HTTPS clone:
 
 ```bash
-Z2H_EXPLORE_MCP_REPO=https://github.com/ram-amit/z2h-explore-mcp.git \
+Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
+  Z2H_EXPLORE_MCP_REPO=https://github.com/ram-amit/z2h-explore-mcp.git \
   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
 ```
+
+**Paste in Slack (new install):**
+
+> **campaign-explore MCP for Cursor**
+>
+> create/manage looks + dashboards in campaign-explore from chat. saves to your personal folder (`git config user.name`).
+>
+> ```
+> Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
+>   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
+> ```
+> change the path to wherever you want it. **restart Cursor**, then test: `list explores in campaign-explore`
+>
+> no github SSH? add `Z2H_EXPLORE_MCP_REPO=https://github.com/ram-amit/z2h-explore-mcp.git \` before the curl line.
+>
+> repo: https://github.com/ram-amit/z2h-explore-mcp
 
 ### Option B: clone then install
 
 ```bash
-git clone git@github.com:ram-amit/z2h-explore-mcp.git ~/Development/z2h-explore-mcp
-cd ~/Development/z2h-explore-mcp
+git clone git@github.com:ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp
+cd ~/z2h-explore-mcp
 ./install-z2h-explore-mcp.sh --dir .
 ```
 
 ### Option C: manual (developers)
 
 ```bash
-cd ~/Development/z2h-explore-mcp
+cd /path/to/z2h-explore-mcp
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -75,7 +88,7 @@ Or run `./install-z2h-explore-mcp.sh --dir .` to generate the block automaticall
 ## Upgrade (existing install)
 
 ```bash
-cd ~/Development/z2h-explore-mcp
+cd /path/to/z2h-explore-mcp
 git pull
 ./migrate-personal-storage.sh
 ```
@@ -83,13 +96,13 @@ git pull
 Or re-run the full installer (also refreshes venv + `mcp.json`):
 
 ```bash
-cd ~/Development/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
+cd /path/to/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 ```
 
-**Slack one-liner:**
+**Slack one-liner (upgrade):**
 
 > campaign-explore MCP upgrade - run locally, then restart Cursor:
-> `cd ~/Development/z2h-explore-mcp && git pull && ./migrate-personal-storage.sh`
+> `cd /path/to/z2h-explore-mcp && git pull && ./migrate-personal-storage.sh`
 
 ## Ship updates to the team
 
@@ -99,7 +112,7 @@ cd ~/Development/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 
 | Env / flag | Purpose |
 |------------|---------|
-| `--dir` / `Z2H_EXPLORE_MCP_DIR` | Install path (default `~/Development/z2h-explore-mcp`) |
+| `--dir` / `Z2H_EXPLORE_MCP_DIR` | Install path (your choice; fallback `~/Development/z2h-explore-mcp` or `~/z2h-explore-mcp`) |
 | `--repo-url` / `Z2H_EXPLORE_MCP_REPO` | Git clone URL (default `git@github.com:ram-amit/z2h-explore-mcp.git`) |
 
 ## Tools
