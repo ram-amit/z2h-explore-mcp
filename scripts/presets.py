@@ -48,6 +48,8 @@ Z2H_EXPLORE_INSTALL = McpPreset(
     task_summary="""\
 Set up the **existing** z2h-explore MCP at `{{Z2H_EXPLORE_MCP_PATH}}` on this machine. Do not scaffold a new repo.
 
+Source repo: https://github.com/ram-amit/z2h-explore-mcp
+
 1. Create venv + `pip install -r requirements.txt` if missing
 2. Add the server to `{{MCP_JSON_PATH}}` using absolute paths for **this** user
 3. Run a smoke test: `list_explores` and `get_dimensions` with `search=spend`

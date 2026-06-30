@@ -19,19 +19,25 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from personalize_prompt import DEFAULT_OUTPUT, TEMPLATES, render_template  # noqa: E402
 from presets import get_preset  # noqa: E402
+from repo_config import DEFAULT_INSTALL_DIRNAME, DEFAULT_REPO_SSH, GITHUB_WEB_URL  # noqa: E402
 from user_context import UserContext, detect_user_context  # noqa: E402
 
 MCP_KEY = "z2h-explore"
 REQUIRED_FILES = ("server.py", "api.py", "requirements.txt")
 
 
-def resolve_install_dir(explicit: str | None) -> Path:
-    if explicit:
-        return Path(explicit).expanduser().resolve()
+def default_install_dir() -> Path:
     env_dir = os.getenv("Z2H_EXPLORE_MCP_DIR")
     if env_dir:
         return Path(env_dir).expanduser().resolve()
-    return Path.home() / "z2h-explore-mcp"
+    ctx = detect_user_context()
+    return ctx.development_root / DEFAULT_INSTALL_DIRNAME
+
+
+def resolve_install_dir(explicit: str | None) -> Path:
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    return default_install_dir()
 
 
 def find_bundled_repo() -> Path | None:
@@ -50,13 +56,22 @@ def run(cmd: list[str], *, cwd: Path | None = None) -> None:
     subprocess.run(cmd, cwd=cwd, check=True)
 
 
+def refresh_git_repo(install_dir: Path) -> None:
+    if not (install_dir / ".git").exists():
+        return
+    print(f"Updating existing clone at {install_dir}")
+    run(["git", "pull", "--ff-only"], cwd=install_dir)
+
+
 def clone_repo(repo_url: str, target: Path) -> None:
     if target.exists() and any(target.iterdir()):
         if all((target / name).exists() for name in REQUIRED_FILES):
+            refresh_git_repo(target)
             print(f"Using existing install at {target}")
             return
         raise SystemExit(f"Install dir exists but is not a z2h-explore-mcp repo: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Cloning {repo_url} -> {target}")
     run(["git", "clone", repo_url, str(target)])
 
 
@@ -98,11 +113,14 @@ def copy_bundled_repo(source: Path, target: Path) -> None:
 def ensure_repo(install_dir: Path, repo_url: str | None, tarball_url: str | None) -> Path:
     bundled = find_bundled_repo()
     if bundled and install_dir.resolve() == bundled.resolve():
+        refresh_git_repo(bundled)
         return bundled
     if all((install_dir / name).exists() for name in REQUIRED_FILES):
+        refresh_git_repo(install_dir)
         return install_dir
-    if repo_url:
-        clone_repo(repo_url, install_dir)
+    effective_repo_url = repo_url or DEFAULT_REPO_SSH
+    if effective_repo_url:
+        clone_repo(effective_repo_url, install_dir)
         return install_dir
     if tarball_url:
         download_tarball(tarball_url, install_dir)
@@ -112,8 +130,7 @@ def ensure_repo(install_dir: Path, repo_url: str | None, tarball_url: str | None
         return install_dir
     raise SystemExit(
         "Could not find z2h-explore-mcp sources.\n"
-        "Set Z2H_EXPLORE_MCP_REPO (git URL) or Z2H_EXPLORE_MCP_TARBALL_URL,\n"
-        "or run this script from inside the unzipped repo folder."
+        f"Clone {GITHUB_WEB_URL} or run the install script from the repo."
     )
 
 
@@ -195,7 +212,11 @@ def main() -> None:
         dest="install_dir",
         help="Install folder (default: ~/z2h-explore-mcp or $Z2H_EXPLORE_MCP_DIR)",
     )
-    parser.add_argument("--repo-url", default=os.getenv("Z2H_EXPLORE_MCP_REPO"), help="Git clone URL")
+    parser.add_argument(
+        "--repo-url",
+        default=os.getenv("Z2H_EXPLORE_MCP_REPO", DEFAULT_REPO_SSH),
+        help=f"Git clone URL (default: {DEFAULT_REPO_SSH})",
+    )
     parser.add_argument(
         "--tarball-url",
         default=os.getenv("Z2H_EXPLORE_MCP_TARBALL_URL"),

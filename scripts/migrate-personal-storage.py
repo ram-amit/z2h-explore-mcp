@@ -10,8 +10,8 @@ Usage:
   python3 migrate-personal-storage.py --install-dir ~/Development/z2h-explore-mcp
   python3 migrate-personal-storage.py --dry-run
 
-Share with teammates: send this single file, or:
-  cd <their-z2h-explore-mcp> && git pull && python3 scripts/migrate-personal-storage.py
+Share with teammates: `cd ~/Development/z2h-explore-mcp && git pull && ./migrate-personal-storage.sh`
+Repo: https://github.com/ram-amit/z2h-explore-mcp
 """
 
 from __future__ import annotations
@@ -23,6 +23,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from repo_config import GITHUB_WEB_URL
 
 MCP_KEY = "z2h-explore"
 MARKER = "def personal_folder_name()"
@@ -204,7 +209,7 @@ def main() -> None:
         raise SystemExit(
             "\napi.py is missing personal-storage support (old MCP code).\n"
             f"Fix: cd {install_dir} && git pull\n"
-            "Or copy the latest api.py + server.py from the team repo, then re-run this script.\n"
+            f"Or clone latest from {GITHUB_WEB_URL}, then re-run this script.\n"
         )
 
     write_env(install_dir, personal_folder, args.dry_run)
