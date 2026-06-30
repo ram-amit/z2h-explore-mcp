@@ -1,5 +1,7 @@
 # Z2H Explore MCP
 
+Repo: https://github.com/ram-amit/z2h-explore-mcp
+
 MCP server for creating and managing **looks** and **dashboards** in [campaign-explore](https://bigbrain.me/bigbrain-vibe/campaign-explore) on bigbrain.me. Intended as the Z2H replacement for Looker MCP after Looker sunset.
 
 ## Setup
@@ -48,16 +50,17 @@ Installer does everything: copy/clone repo, venv, `pip install`, write `.env` wi
 
 ### Upgrade existing install (no new folder)
 
-Send teammates **one command** (they already have `z2h-explore-mcp` cloned once):
+Send teammates **one command** (after one-time clone):
+
+```bash
+git clone git@github.com:ram-amit/z2h-explore-mcp.git ~/Development/z2h-explore-mcp
+cd ~/Development/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
+```
+
+Already installed? Upgrade config + code:
 
 ```bash
 cd ~/Development/z2h-explore-mcp && git pull && ./migrate-personal-storage.sh
-```
-
-Or only the script file (no repo pull if they cannot use git):
-
-```bash
-python3 migrate-personal-storage.py
 ```
 
 The script: finds install from `~/.cursor/mcp.json`, `git pull` if repo, verifies `api.py` has personal-storage code, writes `.env`, updates `mcp.json` env with their `git config user.name`. Restart Cursor after.
