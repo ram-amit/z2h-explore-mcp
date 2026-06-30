@@ -24,6 +24,78 @@ from user_context import UserContext, detect_user_context  # noqa: E402
 
 MCP_KEY = "z2h-explore"
 REQUIRED_FILES = ("server.py", "api.py", "requirements.txt")
+MIN_PYTHON = (3, 10)
+
+
+def python_version_tuple(exe: str) -> tuple[int, int] | None:
+    try:
+        result = subprocess.run(
+            [exe, "-c", "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        major, minor = result.stdout.strip().split(".", 1)
+        return int(major), int(minor)
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return None
+
+
+def python_is_supported(exe: str) -> bool:
+    version = python_version_tuple(exe)
+    return version is not None and version >= MIN_PYTHON
+
+
+def python_candidates() -> list[str]:
+    names = [
+        "python3.13",
+        "python3.12",
+        "python3.11",
+        "python3.10",
+        "python3",
+    ]
+    brew_roots = ["/opt/homebrew", "/usr/local"]
+    for root in brew_roots:
+        for minor in ("3.13", "3.12", "3.11", "3.10"):
+            names.append(f"{root}/opt/python@{minor}/bin/python3")
+        names.append(f"{root}/bin/python3")
+
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for name in names:
+        path = shutil.which(name) if "/" not in name else (name if Path(name).exists() else None)
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        candidates.append(path)
+    return candidates
+
+
+def find_python(explicit: str | None = None) -> str:
+    override = explicit or os.getenv("Z2H_EXPLORE_PYTHON")
+    if override:
+        if not python_is_supported(override):
+            version = python_version_tuple(override)
+            label = ".".join(map(str, version)) if version else "unknown"
+            raise SystemExit(
+                f"Python {label} at {override} is too old. z2h-explore-mcp requires Python 3.10+."
+            )
+        return override
+
+    for candidate in python_candidates():
+        if python_is_supported(candidate):
+            version = python_version_tuple(candidate)
+            label = ".".join(map(str, version)) if version else candidate
+            print(f"Using Python {label}: {candidate}")
+            return candidate
+
+    raise SystemExit(
+        "Python 3.10+ is required but not found.\n"
+        "Install one of:\n"
+        "  brew install python@3.12\n"
+        "  brew install python\n"
+        "Then re-run the installer, or set Z2H_EXPLORE_PYTHON to the new python path."
+    )
 
 
 def default_install_dir() -> Path:
@@ -134,11 +206,16 @@ def ensure_repo(install_dir: Path, repo_url: str | None, tarball_url: str | None
     )
 
 
-def setup_venv(install_dir: Path) -> Path:
+def setup_venv(install_dir: Path, python_exe: str | None = None) -> Path:
+    python_exe = find_python(python_exe)
     venv_dir = install_dir / "venv"
     python_bin = venv_dir / "bin" / "python3"
+    if python_bin.exists() and not python_is_supported(str(python_bin)):
+        print(f"Removing existing venv (Python < 3.10): {venv_dir}")
+        shutil.rmtree(venv_dir)
+        python_bin = venv_dir / "bin" / "python3"
     if not python_bin.exists():
-        run([sys.executable, "-m", "venv", str(venv_dir)])
+        run([python_exe, "-m", "venv", str(venv_dir)])
     run([str(python_bin), "-m", "pip", "install", "--upgrade", "pip"])
     run([str(python_bin), "-m", "pip", "install", "-r", "requirements.txt"], cwd=install_dir)
     return python_bin
@@ -223,13 +300,18 @@ def main() -> None:
         help="Tarball URL if not using git",
     )
     parser.add_argument("--skip-mcp-json", action="store_true", help="Do not edit ~/.cursor/mcp.json")
+    parser.add_argument(
+        "--python",
+        default=os.getenv("Z2H_EXPLORE_PYTHON"),
+        help="Python 3.10+ executable for venv (default: auto-detect)",
+    )
     args = parser.parse_args()
 
     install_dir = resolve_install_dir(args.install_dir)
     print(f"Install dir: {install_dir}")
 
     install_dir = ensure_repo(install_dir, args.repo_url, args.tarball_url)
-    python_bin = setup_venv(install_dir)
+    python_bin = setup_venv(install_dir, args.python)
 
     ctx = context_for_install(install_dir)
     write_env_file(install_dir, ctx)

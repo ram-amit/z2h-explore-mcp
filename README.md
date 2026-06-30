@@ -6,7 +6,7 @@ MCP server for creating and managing **looks** and **dashboards** in [campaign-e
 
 ## Install (new users)
 
-Pick one. All paths clone from GitHub, create a venv, write `.env`, and merge `~/.cursor/mcp.json` with your personal campaign-explore folder (`git config user.name`). **Restart Cursor** when done.
+Pick one. Requires **Python 3.10+** (macOS Xcode `python3` is often 3.9; `brew install python` fixes that). All paths create a venv, write `.env`, and merge `~/.cursor/mcp.json` with your personal campaign-explore folder (`git config user.name`). **Restart Cursor** when done.
 
 ### Option A: one-liner (recommended for Slack)
 
@@ -37,6 +37,8 @@ curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/insta
 > git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 > ```
 > then **restart Cursor** and test: `list explores in campaign-explore`
+>
+> needs Python 3.10+. if install fails on `mcp`, run `brew install python` then `cd ~/z2h-explore-mcp && rm -rf venv && ./install-z2h-explore-mcp.sh --dir .`
 >
 > repo: https://github.com/ram-amit/z2h-explore-mcp
 
