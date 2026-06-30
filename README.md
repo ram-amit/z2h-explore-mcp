@@ -14,21 +14,21 @@ pip install -r requirements.txt
 cp .env.example .env   # optional
 ```
 
-Add to `~/.cursor/mcp.json`:
+Add to `~/.cursor/mcp.json` (or run `./install-z2h-explore-mcp.sh` to generate this for you):
 
 ```json
 "z2h-explore": {
-  "command": "/Users/amitram/Development/z2h-explore-mcp/venv/bin/python3",
-  "args": ["/Users/amitram/Development/z2h-explore-mcp/server.py"],
-  "cwd": "/Users/amitram/Development/z2h-explore-mcp",
+  "command": "/path/to/z2h-explore-mcp/venv/bin/python3",
+  "args": ["/path/to/z2h-explore-mcp/server.py"],
+  "cwd": "/path/to/z2h-explore-mcp",
   "env": {
-    "Z2H_EXPLORE_PERSONAL_FOLDER": "Amit Ram",
+    "Z2H_EXPLORE_PERSONAL_FOLDER": "Your Display Name",
     "Z2H_EXPLORE_DEFAULT_STORAGE": "personal"
   }
 }
 ```
 
-Copy `.env.example` to `.env` and set `Z2H_EXPLORE_PERSONAL_FOLDER` to your campaign-explore display name (usually `git config user.name`).
+`Z2H_EXPLORE_PERSONAL_FOLDER` must match your name in campaign-explore (usually `git config user.name`). The installer sets this automatically.
 
 **Storage default:** looks and dashboards are saved under `looks/<your name>/` and `dashboards/<your name>/`, then pinned to the matching `index.json`. Pass `shared=true` on create only when you explicitly want `looks/shared/` or `dashboards/shared/`.
 
@@ -100,7 +100,7 @@ python3 scripts/personalize_prompt.py --install-dir ~/your/path/z2h-explore-mcp
 
 `personalize_prompt.py` detects:
 
-- **Display name** from `git config user.name` (e.g. `Amit Ram`)
+- **Display name** from `git config user.name` (e.g. `Jane Doe`)
 - **Account slug** from git email local part (e.g. `amit-ram` from `amit.ram@...`)
 - **Development folder** (`~/Development` if it exists)
 - **Absolute paths** for `mcp.json` and `z2h-explore-mcp`
