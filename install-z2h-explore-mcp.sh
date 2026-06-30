@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Install campaign-explore MCP (z2h-explore) from GitHub.
 #
-# One-liner (clone + venv + ~/.cursor/mcp.json):
-#   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
+# One-liner (recommended):
+#   git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
+#
+# Curl bootstrap (if you prefer; strip CRLF from GitHub raw):
+#   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | tr -d '\r' | bash
 #
 # Already cloned:
 #   ./install-z2h-explore-mcp.sh --dir .

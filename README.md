@@ -10,21 +10,20 @@ Pick one. All paths clone from GitHub, create a venv, write `.env`, and merge `~
 
 ### Option A: one-liner (recommended for Slack)
 
-Pick any install path:
+Copy/paste exactly:
 
 ```bash
-Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
-  curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
+git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 ```
 
-Without `Z2H_EXPLORE_MCP_DIR`, the installer uses `~/Development/z2h-explore-mcp` if `~/Development` exists, otherwise `~/z2h-explore-mcp`.
+Change `~/z2h-explore-mcp` only if you want a different install folder.
 
-No SSH key? Use HTTPS clone:
+### Option B: curl bootstrap
+
+GitHub raw may serve Windows line endings; strip them before bash:
 
 ```bash
-Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
-  Z2H_EXPLORE_MCP_REPO=https://github.com/ram-amit/z2h-explore-mcp.git \
-  curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | tr -d '\r' | bash
 ```
 
 **Paste in Slack (new install):**
@@ -33,17 +32,15 @@ Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
 >
 > create/manage looks + dashboards in campaign-explore from chat. saves to your personal folder (`git config user.name`).
 >
+> **paste in Terminal (copy all 1 line):**
 > ```
-> Z2H_EXPLORE_MCP_DIR=~/z2h-explore-mcp \
->   curl -fsSL https://raw.githubusercontent.com/ram-amit/z2h-explore-mcp/main/install-z2h-explore-mcp.sh | bash
+> git clone https://github.com/ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp && cd ~/z2h-explore-mcp && ./install-z2h-explore-mcp.sh --dir .
 > ```
-> change the path to wherever you want it. **restart Cursor**, then test: `list explores in campaign-explore`
->
-> no github SSH? add `Z2H_EXPLORE_MCP_REPO=https://github.com/ram-amit/z2h-explore-mcp.git \` before the curl line.
+> then **restart Cursor** and test: `list explores in campaign-explore`
 >
 > repo: https://github.com/ram-amit/z2h-explore-mcp
 
-### Option B: clone then install
+### Option C: clone then install (SSH)
 
 ```bash
 git clone git@github.com:ram-amit/z2h-explore-mcp.git ~/z2h-explore-mcp
@@ -51,7 +48,7 @@ cd ~/z2h-explore-mcp
 ./install-z2h-explore-mcp.sh --dir .
 ```
 
-### Option C: manual (developers)
+### Option D: manual (developers)
 
 ```bash
 cd /path/to/z2h-explore-mcp
