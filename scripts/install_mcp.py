@@ -19,10 +19,14 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from personalize_prompt import DEFAULT_OUTPUT, TEMPLATES, render_template  # noqa: E402
 from presets import get_preset  # noqa: E402
-from repo_config import DEFAULT_INSTALL_DIRNAME, DEFAULT_REPO_SSH, GITHUB_WEB_URL  # noqa: E402
+from repo_config import (  # noqa: E402
+    DEFAULT_INSTALL_DIRNAME,
+    DEFAULT_REPO_HTTPS,
+    DEFAULT_REPO_SSH,
+    GITHUB_WEB_URL,
+)
 from user_context import UserContext, detect_user_context  # noqa: E402
-
-MCP_KEY = "z2h-explore"
+from mcp_config import MCP_KEY, claude_desktop_config_path, merge_mcp_server_config  # noqa: E402
 REQUIRED_FILES = ("server.py", "api.py", "requirements.txt")
 MIN_PYTHON = (3, 10)
 
@@ -102,8 +106,7 @@ def default_install_dir() -> Path:
     env_dir = os.getenv("Z2H_EXPLORE_MCP_DIR")
     if env_dir:
         return Path(env_dir).expanduser().resolve()
-    ctx = detect_user_context()
-    return ctx.development_root / DEFAULT_INSTALL_DIRNAME
+    return Path.home() / DEFAULT_INSTALL_DIRNAME
 
 
 def resolve_install_dir(explicit: str | None) -> Path:
@@ -132,7 +135,22 @@ def refresh_git_repo(install_dir: Path) -> None:
     if not (install_dir / ".git").exists():
         return
     print(f"Updating existing clone at {install_dir}")
-    run(["git", "pull", "--ff-only"], cwd=install_dir)
+    result = subprocess.run(
+        ["git", "pull", "--ff-only"],
+        cwd=install_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return
+    combined = f"{result.stdout}\n{result.stderr}"
+    if "would be overwritten by merge" in combined or "local changes" in combined.lower():
+        print("Local git changes blocked pull; resetting to origin/main ...")
+        subprocess.run(["git", "fetch", "origin"], cwd=install_dir, check=True)
+        subprocess.run(["git", "reset", "--hard", "origin/main"], cwd=install_dir, check=True)
+        return
+    print(combined, file=sys.stderr)
+    raise SystemExit(f"git pull failed in {install_dir}")
 
 
 def clone_repo(repo_url: str, target: Path) -> None:
@@ -190,7 +208,7 @@ def ensure_repo(install_dir: Path, repo_url: str | None, tarball_url: str | None
     if all((install_dir / name).exists() for name in REQUIRED_FILES):
         refresh_git_repo(install_dir)
         return install_dir
-    effective_repo_url = repo_url or DEFAULT_REPO_SSH
+    effective_repo_url = repo_url or os.getenv("Z2H_EXPLORE_MCP_REPO") or DEFAULT_REPO_HTTPS
     if effective_repo_url:
         clone_repo(effective_repo_url, install_dir)
         return install_dir
@@ -233,31 +251,78 @@ def write_env_file(install_dir: Path, ctx: UserContext) -> Path:
     return env_path
 
 
-def merge_mcp_json(install_dir: Path, mcp_json_path: Path, python_bin: Path, ctx: UserContext) -> None:
+def configure_clients(
+    clients: str,
+    install_dir: Path,
+    python_bin: Path,
+    ctx: UserContext,
+) -> list[str]:
     entry = ctx.mcp_json_entry(install_dir, python_bin)
-    mcp_json_path.parent.mkdir(parents=True, exist_ok=True)
-    if mcp_json_path.exists():
-        try:
-            config = json.loads(mcp_json_path.read_text())
-        except json.JSONDecodeError:
-            backup = mcp_json_path.with_suffix(".json.bak")
-            shutil.copy2(mcp_json_path, backup)
-            print(f"Backed up invalid mcp.json to {backup}")
-            config = {}
-    else:
-        config = {}
-    if not isinstance(config, dict):
-        config = {}
-    if "mcpServers" in config and isinstance(config["mcpServers"], dict):
-        servers = config["mcpServers"]
-    else:
-        servers = {k: v for k, v in config.items() if k != "mcpServers" and isinstance(v, dict)}
-        config = {"mcpServers": servers}
-    servers[MCP_KEY] = entry
-    mcp_json_path.write_text(json.dumps(config, indent=2) + "\n")
-    print(f"Updated {mcp_json_path} (added/updated '{MCP_KEY}')")
+    updated: list[str] = []
+
+    if clients in {"cursor", "both"}:
+        merge_mcp_server_config(ctx.cursor_mcp_json, entry, label="Cursor")
+        updated.append("Cursor")
+
+    claude_path = claude_desktop_config_path(ctx.home)
+    if clients in {"claude", "both"}:
+        if claude_path is None:
+            print("Claude Desktop config path not detected on this OS; skipping.")
+        else:
+            merge_mcp_server_config(claude_path, entry, label="Claude Desktop")
+            updated.append("Claude Desktop")
+
+    return updated
 
 
+def print_next_steps(clients: list[str], ctx: UserContext, install_dir: Path) -> None:
+    print("\n" + "=" * 60)
+    print("DONE")
+    print("=" * 60)
+    print(f"Install:        {install_dir}")
+    print(f"Personal folder: {ctx.campaign_explore_personal_folder}")
+    if clients:
+        print(f"MCP wired for:  {', '.join(clients)}")
+    else:
+        print("MCP config:     skipped (venv + .env only)")
+
+    print("\nNext steps:")
+    step = 1
+    if "Cursor" in clients:
+        print(f"  {step}. Quit Cursor fully (Cmd+Q), reopen")
+        step += 1
+        print(f"  {step}. Cursor → Settings → MCP → confirm '{MCP_KEY}' is connected")
+        step += 1
+    if "Claude Desktop" in clients:
+        print(f"  {step}. Quit Claude Desktop fully (Cmd+Q), reopen")
+        step += 1
+
+    print(f"  {step}. In a NEW chat (Cursor or Claude Desktop app — not monday browser Claude), ask:")
+    print('       list explores in campaign-explore')
+    print(f"  {step + 1}. Verify: {', '.join(['Campaign Monitoring', 'Advanced Analytics', 'LinkedIn Habu'])}")
+    print("\nHealth check anytime:")
+    print(f"  cd {install_dir} && python3 scripts/verify_install.py")
+    print("\nNote: looker-toolbox is Looker. z2h-explore is campaign-explore on bigbrain.me.")
+
+
+def preflight(python_exe: str | None) -> None:
+    if not _git_config("user.name"):
+        print("WARN: git config user.name is not set.")
+        print("      Set it so campaign-explore uses the right personal folder:")
+        print('      git config --global user.name "First Last"')
+    find_python(python_exe)
+
+
+def _git_config(key: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "config", "--global", key],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
 def context_for_install(install_dir: Path) -> UserContext:
     base = detect_user_context()
     return UserContext(
@@ -282,6 +347,12 @@ def write_personalized_prompt(install_dir: Path) -> Path:
     return output
 
 
+def resolve_clients(args: argparse.Namespace) -> str:
+    if args.skip_mcp_json:
+        return "none"
+    return args.clients
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Install z2h-explore MCP (any install path)")
     parser.add_argument(
@@ -291,15 +362,25 @@ def main() -> None:
     )
     parser.add_argument(
         "--repo-url",
-        default=os.getenv("Z2H_EXPLORE_MCP_REPO", DEFAULT_REPO_SSH),
-        help=f"Git clone URL (default: {DEFAULT_REPO_SSH})",
+        default=os.getenv("Z2H_EXPLORE_MCP_REPO", DEFAULT_REPO_HTTPS),
+        help=f"Git clone URL (default: {DEFAULT_REPO_HTTPS})",
     )
     parser.add_argument(
         "--tarball-url",
         default=os.getenv("Z2H_EXPLORE_MCP_TARBALL_URL"),
         help="Tarball URL if not using git",
     )
-    parser.add_argument("--skip-mcp-json", action="store_true", help="Do not edit ~/.cursor/mcp.json")
+    parser.add_argument(
+        "--clients",
+        choices=["cursor", "claude", "both", "none"],
+        default="cursor",
+        help="Wire MCP into Cursor and/or Claude Desktop (default: cursor)",
+    )
+    parser.add_argument(
+        "--skip-mcp-json",
+        action="store_true",
+        help="Deprecated: same as --clients none",
+    )
     parser.add_argument(
         "--python",
         default=os.getenv("Z2H_EXPLORE_PYTHON"),
@@ -310,27 +391,20 @@ def main() -> None:
     install_dir = resolve_install_dir(args.install_dir)
     print(f"Install dir: {install_dir}")
 
+    preflight(args.python)
     install_dir = ensure_repo(install_dir, args.repo_url, args.tarball_url)
     python_bin = setup_venv(install_dir, args.python)
 
     ctx = context_for_install(install_dir)
     write_env_file(install_dir, ctx)
 
-    if not args.skip_mcp_json:
-        merge_mcp_json(install_dir, ctx.cursor_mcp_json, python_bin, ctx)
+    clients_mode = resolve_clients(args)
+    configured = []
+    if clients_mode != "none":
+        configured = configure_clients(clients_mode, install_dir, python_bin, ctx)
 
-    prompt_path = write_personalized_prompt(install_dir)
-    ctx = context_for_install(install_dir)
-
-    print("\nDone.")
-    print(f"  Installed to: {install_dir}")
-    print(f"  Detected: {ctx.display_name} ({ctx.account_slug})")
-    if not args.skip_mcp_json:
-        print(f"  Cursor config: {ctx.cursor_mcp_json}")
-        print("  Restart Cursor to load z2h-explore.")
-    print(f"  Optional follow-up prompt: {prompt_path}")
-    print("\nTry in Cursor after restart:")
-    print('  "list explores in campaign-explore"')
+    write_personalized_prompt(install_dir)
+    print_next_steps(configured, ctx, install_dir)
 
 
 if __name__ == "__main__":
