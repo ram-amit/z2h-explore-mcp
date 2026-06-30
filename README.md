@@ -1,6 +1,6 @@
 # Z2H Explore MCP
 
-**Repo:** https://github.com/ram-amit/z2h-explore-mcp (private - ask Amit for access)
+**Repo:** https://github.com/ram-amit/z2h-explore-mcp (public - no access request needed)
 
 MCP server for creating and managing **looks** and **dashboards** in [campaign-explore](https://bigbrain.me/bigbrain-vibe/campaign-explore) on bigbrain.me. Intended as the Z2H replacement for Looker MCP after Looker sunset.
 
